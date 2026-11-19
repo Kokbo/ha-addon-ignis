@@ -1,0 +1,40 @@
+configuration:
+  vault_root:
+    name: Vault folder
+    description: >-
+      Folder that holds your vaults; every subfolder is one vault. Must be under /share
+      or /media, so the vaults can also be reached through the Samba add-on and are
+      included in Home Assistant backups of that folder.
+  write_coalesce_ms:
+    name: Write coalesce window (ms)
+    description: >-
+      Groups rapid saves to the same file. Leave at 0 for local storage; use 200–1000
+      when the vault folder is a network share (SMB/NFS).
+  ws_origins:
+    name: Allowed origins for live sync
+    description: >-
+      Optional. Full addresses the browser uses to open Ignis, such as
+      https://notes.example.com. When set, live-sync connections from other sites are
+      refused. Empty allows any origin.
+  proxy_allow_private_hosts:
+    name: Private hosts plugins may reach
+    description: >-
+      Optional. IP addresses or CIDR ranges on your network that plugins may call
+      through the Ignis proxy (for example a local LLM or your Home Assistant). By
+      default the proxy only reaches public internet addresses.
+  ignored_paths:
+    name: Ignored paths
+    description: Optional. Extra file or folder patterns the file watcher ignores.
+  obsidian_version:
+    name: Obsidian version
+    description: >-
+      Optional. Use a newer Obsidian than the version this Ignis release is tested
+      with. Leave empty unless you know you need it; older versions are ignored.
+  puid:
+    name: User ID
+    description: Optional. Owner of the vault files. Default 1000.
+  pgid:
+    name: Group ID
+    description: Optional. Group of the vault files. Default 1000.
+network:
+  8080/tcp: Web interface (no login of its own; put authentication in front of it)

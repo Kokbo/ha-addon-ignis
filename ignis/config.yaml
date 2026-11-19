@@ -1,0 +1,38 @@
+name: Ignis (Obsidian)
+version: "0.9.0"
+slug: ignis
+description: Obsidian in the browser, with your vaults stored on Home Assistant
+url: https://github.com/Kokbo/ha-addon-ignis
+arch:
+  - aarch64
+  - amd64
+# Ignis requests /api, /ws and /vault-files from the root of the site, so it cannot
+# run under the Home Assistant ingress path. It is reached on its own port instead.
+ingress: false
+webui: http://[HOST]:[PORT:8080]
+watchdog: http://[HOST]:[PORT:8080]/api/version
+map:
+  - share:rw
+  - media:rw
+ports:
+  8080/tcp: 8080
+ports_description:
+  8080/tcp: Web interface (no login of its own; put authentication in front of it)
+options:
+  vault_root: /share/obsidian
+  write_coalesce_ms: 0
+  ws_origins: []
+  proxy_allow_private_hosts: []
+  ignored_paths: []
+schema:
+  vault_root: match(^/(share|media)/.+)
+  write_coalesce_ms: int(0,60000)
+  ws_origins:
+    - str
+  proxy_allow_private_hosts:
+    - str
+  ignored_paths:
+    - str
+  obsidian_version: match(^\d+\.\d+\.\d+$)?
+  puid: int(0,65535)?
+  pgid: int(0,65535)?

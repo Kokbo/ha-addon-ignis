@@ -1,1 +1,46 @@
-# ha-addon-ignis
+# Ignis – Home Assistant add-on
+
+Run [Ignis](https://github.com/Nystik-gh/ignis) on Home Assistant: the real Obsidian
+app in a browser tab, with your vaults stored in `/share/obsidian`.
+
+[![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FKokbo%2Fha-addon-ignis)
+
+## Install in Home Assistant
+
+1. **Settings → Add-ons → Add-on store → ⋮ → Repositories**, add
+   `https://github.com/Kokbo/ha-addon-ignis`.
+2. Install **Ignis (Obsidian)**. The image is built on your machine from the official
+   multi-arch `nobbe/ignis` image (a few minutes).
+3. Start it and click **Open web UI**. The first start downloads Obsidian (a minute or
+   two).
+
+Supported: `amd64` and `aarch64` (Raspberry Pi 4/5, HA Green/Yellow).
+
+Ignis has no login. Read the [add-on documentation](ignis/DOCS.md) for security,
+HTTPS and options before exposing it.
+
+## Updating to a new Ignis release
+
+1. Change the `nobbe/ignis:<version>` tag in `ignis/build.yaml` (both architectures)
+   and in `BUILD_FROM` in `ignis/Dockerfile`.
+2. Set the same `version` in `ignis/config.yaml` and add a `CHANGELOG.md` entry.
+3. Push. CI builds both architectures; the build fails if the upstream entrypoint
+   changed in a way the add-on's patch no longer matches.
+
+## Repository layout
+
+```
+repository.yaml                         add-on repository metadata
+ignis/config.yaml                       add-on manifest and options
+ignis/build.yaml                        base image per architecture
+ignis/Dockerfile                        adapts the upstream image to Home Assistant
+ignis/rootfs/run.sh                     maps options to Ignis environment variables
+ignis/rootfs/usr/local/lib/ha-addon/    option parser
+ignis/translations/en.yaml              option labels in the Home Assistant UI
+```
+
+## Credits
+
+Ignis is made by [Nystik-gh](https://github.com/Nystik-gh/ignis) and licensed under
+AGPL-3.0. Obsidian is made by Dynalist Inc. and is downloaded from its official
+releases; it is not included in this repository.

@@ -6,11 +6,10 @@ url: https://github.com/Kokbo/ha-addon-ignis
 arch:
   - aarch64
   - amd64
-# Ignis requests /api, /ws and /vault-files from the root of the site, so it cannot
-# run under the Home Assistant ingress path. It is reached on its own port instead.
-ingress: false
+# No ingress: Ignis requests /api, /ws and /vault-files from the root of the site, so
+# it cannot run under the Home Assistant ingress path. It is reached on its own port.
+# Health is checked by the HEALTHCHECK in the Dockerfile.
 webui: http://[HOST]:[PORT:8080]
-watchdog: http://[HOST]:[PORT:8080]/api/version
 map:
   - share:rw
   - media:rw

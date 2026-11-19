@@ -9,7 +9,7 @@ jobs:
   addon-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: frenck/action-addon-linter@v2
         with:
           path: ./ignis
@@ -17,8 +17,8 @@ jobs:
   scripts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: bash -n ignis/rootfs/run.sh
@@ -37,7 +37,7 @@ jobs:
       matrix:
         arch: [amd64, aarch64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Read base image from build.yaml
         id: base
         run: echo "image=$(yq '.build_from.${{ matrix.arch }}' ignis/build.yaml)" >> "$GITHUB_OUTPUT"

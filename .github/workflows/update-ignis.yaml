@@ -1,8 +1,9 @@
 name: Update Ignis
 
-# Checks Docker Hub every day for a newer nobbe/ignis release and opens a pull
-# request that bumps the add-on to it. CI then builds and starts the image on
-# both architectures before you merge.
+# Checks Docker Hub every day for a newer nobbe/ignis release. When there is one, the
+# version bump is pushed to a temporary branch, tested with the full CI (build and start
+# on amd64 and aarch64), and only then pushed to main, where Home Assistant picks it up.
+# If CI fails, main is left alone and the update-ignis-<version> branch stays for a look.
 on:
   schedule:
     - cron: "23 4 * * *"
@@ -10,69 +11,89 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  actions: write
 
 concurrency:
   group: update-ignis
   cancel-in-progress: false
 
 jobs:
-  update:
+  bump:
     runs-on: ubuntu-latest
+    outputs:
+      updated: ${{ steps.push.outputs.updated }}
+      latest: ${{ steps.bump.outputs.latest }}
+      branch: ${{ steps.push.outputs.branch }}
+      sha: ${{ steps.push.outputs.sha }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: main
 
       - name: Look for a newer Ignis image
         id: bump
         run: bash .github/scripts/update-ignis.sh
 
-      - name: Open pull request
+      - name: Push the bump to a test branch
+        id: push
         if: steps.bump.outputs.updated == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CURRENT: ${{ steps.bump.outputs.current }}
           LATEST: ${{ steps.bump.outputs.latest }}
-          OBSIDIAN: ${{ steps.bump.outputs.obsidian }}
         run: |
           branch="update-ignis-${LATEST}"
 
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
-            pr_state="$(gh pr list --head "$branch" --state all --json state --jq '.[0].state // ""')"
-            if [ -n "$pr_state" ]; then
-              echo "Pull request for $branch already exists ($pr_state); nothing to do."
-              exit 0
-            fi
-            echo "Branch $branch exists without a pull request; opening one."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git checkout -b "$branch"
-            git add ignis/build.yaml ignis/Dockerfile ignis/config.yaml ignis/CHANGELOG.md
-            git commit -m "Update Ignis to ${LATEST}"
-            git push origin "$branch"
+            echo "Branch $branch already exists: an earlier attempt for $LATEST failed CI."
+            echo "Fix or delete that branch to try again."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          obsidian_line=""
-          if [ -n "$OBSIDIAN" ]; then
-            obsidian_line="Obsidian: ${OBSIDIAN}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add ignis/build.yaml ignis/Dockerfile ignis/config.yaml ignis/CHANGELOG.md
+          git commit -m "Update Ignis to ${LATEST}"
+          git push origin "$branch"
+
+          {
+            echo "updated=true"
+            echo "branch=$branch"
+            echo "sha=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: bump
+    if: needs.bump.outputs.updated == 'true'
+    uses: ./.github/workflows/ci.yaml
+    with:
+      ref: ${{ needs.bump.outputs.sha }}
+
+  release:
+    needs: [bump, test]
+    if: needs.bump.outputs.updated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Push the tested commit to main
+        env:
+          SHA: ${{ needs.bump.outputs.sha }}
+          BRANCH: ${{ needs.bump.outputs.branch }}
+          LATEST: ${{ needs.bump.outputs.latest }}
+        run: |
+          git fetch origin "$BRANCH"
+
+          # Fast-forward only. If main moved since the check, drop the test branch so
+          # tomorrow's run starts again from the new main.
+          if ! git push origin "${SHA}:refs/heads/main"; then
+            git push origin --delete "$BRANCH"
+            echo "::warning::main changed during the update; it will be retried on the next run."
+            exit 1
           fi
 
-          body=$(cat <<EOF
-          Bumps the add-on from Ignis ${CURRENT} to ${LATEST}.
-          ${obsidian_line}
+          git push origin --delete "$BRANCH"
 
-          - Upstream releases: https://github.com/Nystik-gh/ignis/releases
-          - CI builds and starts the add-on on amd64 and aarch64. The build fails if the
-            upstream entrypoint changed in a way the add-on's patch no longer matches.
-
-          Merge when CI is green; Home Assistant then offers the update in the add-on store.
-          EOF
-          )
-
-          gh pr create --base main --head "$branch" \
-            --title "Update Ignis to ${LATEST}" --body "$body"
-
-          # Pull requests opened with GITHUB_TOKEN don't trigger other workflows, so
-          # start CI on the branch explicitly (workflow_dispatch is allowed).
-          gh workflow run ci.yaml --ref "$branch"
+          echo "Released Ignis ${LATEST} to main."

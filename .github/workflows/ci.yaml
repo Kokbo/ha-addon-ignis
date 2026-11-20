@@ -5,12 +5,22 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Called by the Update Ignis workflow to test a version bump before it lands on main.
+  workflow_call:
+    inputs:
+      ref:
+        description: Branch or commit to test
+        type: string
+        required: false
+        default: ""
 
 jobs:
   addon-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
       - uses: frenck/action-addon-linter@v2
         with:
           path: ./ignis
@@ -19,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -39,6 +51,8 @@ jobs:
         arch: [amd64, aarch64]
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
       - name: Read base image from build.yaml
         id: base
         run: echo "image=$(yq '.build_from.${{ matrix.arch }}' ignis/build.yaml)" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,78 @@
+name: Update Ignis
+
+# Checks Docker Hub every day for a newer nobbe/ignis release and opens a pull
+# request that bumps the add-on to it. CI then builds and starts the image on
+# both architectures before you merge.
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: update-ignis
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Look for a newer Ignis image
+        id: bump
+        run: bash .github/scripts/update-ignis.sh
+
+      - name: Open pull request
+        if: steps.bump.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT: ${{ steps.bump.outputs.current }}
+          LATEST: ${{ steps.bump.outputs.latest }}
+          OBSIDIAN: ${{ steps.bump.outputs.obsidian }}
+        run: |
+          branch="update-ignis-${LATEST}"
+
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            pr_state="$(gh pr list --head "$branch" --state all --json state --jq '.[0].state // ""')"
+            if [ -n "$pr_state" ]; then
+              echo "Pull request for $branch already exists ($pr_state); nothing to do."
+              exit 0
+            fi
+            echo "Branch $branch exists without a pull request; opening one."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git checkout -b "$branch"
+            git add ignis/build.yaml ignis/Dockerfile ignis/config.yaml ignis/CHANGELOG.md
+            git commit -m "Update Ignis to ${LATEST}"
+            git push origin "$branch"
+          fi
+
+          obsidian_line=""
+          if [ -n "$OBSIDIAN" ]; then
+            obsidian_line="Obsidian: ${OBSIDIAN}"
+          fi
+
+          body=$(cat <<EOF
+          Bumps the add-on from Ignis ${CURRENT} to ${LATEST}.
+          ${obsidian_line}
+
+          - Upstream releases: https://github.com/Nystik-gh/ignis/releases
+          - CI builds and starts the add-on on amd64 and aarch64. The build fails if the
+            upstream entrypoint changed in a way the add-on's patch no longer matches.
+
+          Merge when CI is green; Home Assistant then offers the update in the add-on store.
+          EOF
+          )
+
+          gh pr create --base main --head "$branch" \
+            --title "Update Ignis to ${LATEST}" --body "$body"
+
+          # Pull requests opened with GITHUB_TOKEN don't trigger other workflows, so
+          # start CI on the branch explicitly (workflow_dispatch is allowed).
+          gh workflow run ci.yaml --ref "$branch"

@@ -21,6 +21,17 @@ HTTPS and options before exposing it.
 
 ## Updating to a new Ignis release
 
+The **Update Ignis** workflow does this automatically: every day it checks Docker Hub
+for a newer `nobbe/ignis` release published for both amd64 and arm64, and opens a pull
+request that bumps the version and changelog. CI builds and starts it on both
+architectures; merge when it's green. Run it by hand under **Actions → Update Ignis →
+Run workflow**.
+
+It needs **Settings → Actions → General → Allow GitHub Actions to create and approve
+pull requests** switched on.
+
+To update by hand:
+
 1. Change the `nobbe/ignis:<version>` tag in `ignis/build.yaml` (both architectures)
    and in `BUILD_FROM` in `ignis/Dockerfile`.
 2. Set the same `version` in `ignis/config.yaml` and add a `CHANGELOG.md` entry.

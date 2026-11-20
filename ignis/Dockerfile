@@ -1,6 +1,16 @@
 # syntax=docker/dockerfile:1
+# Upstream publishes nobbe/ignis as a multi-arch image (linux/amd64 + linux/arm64).
+# This default is the base image (build.yaml is deprecated, so the Supervisor no
+# longer passes BUILD_FROM). Keep it in step with version in config.yaml;
+# .github/scripts/update-ignis.sh updates both.
 ARG BUILD_FROM=nobbe/ignis:0.9.0
 FROM ${BUILD_FROM}
+
+LABEL \
+    org.opencontainers.image.title="Home Assistant App: Ignis (Obsidian)" \
+    org.opencontainers.image.description="Obsidian in the browser, with your vaults stored on Home Assistant" \
+    org.opencontainers.image.source="https://github.com/Kokbo/ha-addon-ignis" \
+    org.opencontainers.image.licenses="AGPL-3.0-only"
 
 ARG OBSIDIAN_HEADLESS_VERSION=0.0.14
 ARG UPSTREAM_ENTRYPOINT=/app/apps/ignis-server/scripts/entrypoint.sh

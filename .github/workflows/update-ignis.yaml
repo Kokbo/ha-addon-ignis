@@ -51,7 +51,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add ignis/build.yaml ignis/Dockerfile ignis/config.yaml ignis/CHANGELOG.md
+          git add ignis/Dockerfile ignis/config.yaml ignis/CHANGELOG.md
           git commit -m "Update Ignis to ${LATEST}"
           git push origin "$branch"
 

@@ -19,9 +19,9 @@ out() {
     fi
 }
 
-current="$(sed -n 's#^  amd64: nobbe/ignis:\(.*\)$#\1#p' "$ROOT/ignis/build.yaml")"
+current="$(sed -n 's#^ARG BUILD_FROM=nobbe/ignis:\(.*\)$#\1#p' "$ROOT/ignis/Dockerfile")"
 if [ -z "$current" ]; then
-    echo "Could not read the current version from ignis/build.yaml" >&2
+    echo "Could not read the current version from ignis/Dockerfile" >&2
     exit 1
 fi
 
@@ -69,12 +69,9 @@ if [ -z "$upstream_tag" ]; then
 fi
 out obsidian "$obsidian"
 
-sed -i "s#nobbe/ignis:${current}\$#nobbe/ignis:${latest}#" "$ROOT/ignis/build.yaml"
 sed -i "s#^ARG BUILD_FROM=nobbe/ignis:${current}\$#ARG BUILD_FROM=nobbe/ignis:${latest}#" "$ROOT/ignis/Dockerfile"
 sed -i "s#^version: \"${current}\"\$#version: \"${latest}\"#" "$ROOT/ignis/config.yaml"
 
-grep -qxF "  aarch64: nobbe/ignis:${latest}" "$ROOT/ignis/build.yaml"
-grep -qxF "  amd64: nobbe/ignis:${latest}" "$ROOT/ignis/build.yaml"
 grep -qxF "ARG BUILD_FROM=nobbe/ignis:${latest}" "$ROOT/ignis/Dockerfile"
 grep -qxF "version: \"${latest}\"" "$ROOT/ignis/config.yaml"
 

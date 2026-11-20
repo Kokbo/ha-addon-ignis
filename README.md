@@ -21,14 +21,15 @@ HTTPS and options before exposing it.
 
 ## Updating to a new Ignis release
 
-The **Update Ignis** workflow does this automatically: every day it checks Docker Hub
-for a newer `nobbe/ignis` release published for both amd64 and arm64, and opens a pull
-request that bumps the version and changelog. CI builds and starts it on both
-architectures; merge when it's green. Run it by hand under **Actions → Update Ignis →
-Run workflow**.
+The **Update Ignis** workflow does this automatically. Every day it checks Docker Hub
+for a newer `nobbe/ignis` release published for both amd64 and arm64. When it finds
+one, it pushes the version bump to a temporary `update-ignis-<version>` branch, runs the
+full CI there (build and start on amd64 and aarch64), and only then pushes the commit to
+`main`. Home Assistant then offers the update in the add-on store.
 
-It needs **Settings → Actions → General → Allow GitHub Actions to create and approve
-pull requests** switched on.
+If CI fails, `main` is left alone and the `update-ignis-<version>` branch stays so you
+can see what broke; delete it to let the workflow try that version again. Run the
+workflow by hand under **Actions → Update Ignis → Run workflow**.
 
 To update by hand:
 
